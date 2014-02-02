@@ -8,6 +8,7 @@ module Make (P : Types.TypingSyntax) = struct
 
   type program = block list
 
+
   and block =
     | BClassDefinition of class_definition
     | BInstanceDefinitions of instance_definition list
@@ -35,6 +36,7 @@ module Make (P : Types.TypingSyntax) = struct
     | BindValue of position * value_definition list
     | BindRecValue of position * value_definition list
     | ExternalValue of position * tnames * binding * string
+
 
   and type_mutual_definitions =
     | TypeDefs of position * type_definition list
@@ -105,6 +107,41 @@ module Make (P : Types.TypingSyntax) = struct
 
   and mltypekind = Types.kind
 
+  let string_of_name name = match name with Name sName -> sName ;;
+
+  let string_of_tname tname = match tname with TName name -> name ;;
+
+  let string_of_tnames typeNames = String.concat " " (List.map string_of_tname typeNames) ;;
+
+  let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) -> 
+    Printf.sprintf "Classname(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
+
+  let string_of_class_predicates cl_predicates = String.concat " " (List.map
+  string_of_class_predicate cl_predicates) ;;
+
+  let string_of_value_def = function
+    | ValueDef (position, tnames, class_predicates, binding ,expression) ->
+        Printf.sprintf "ValueDef(_, %s, %s, binding, expression)"
+        (string_of_tnames tnames) 
+        (string_of_class_predicates class_predicates) ;;
+
+  let string_of_value_binding = function
+    | BindValue (pos, value_defs) -> Printf.sprintf "BindValue(_, %s)"
+    (String.concat " " (List.map string_of_value_def value_defs))
+    | BindRecValue (pos, value_defs) -> Printf.sprintf "BindRecValue(_,%s)"
+    (String.concat " " (List.map string_of_value_def value_defs))
+    | ExternalValue (pos, tnames, binding, str) -> "ExternalValue(_, tnames, binding, string)";;
+
+  let string_of_block = function
+    | BClassDefinition class_def -> "BClassDefinition(classDef)"
+    | BInstanceDefinitions instances -> "BInstanceDefinition(instances: List)"
+    | BTypeDefinitions mutual_defs -> "BTypeDefintions(mutual_defs)"
+    | BDefinition value_bind-> Printf.sprintf "BDefinition(%s)"
+    (string_of_value_binding value_bind);; 
+  
+  
+
+ 
 end
 
 module Generic = Make (struct

@@ -20,12 +20,30 @@ let lookup pos x env =
     List.find (fun (_, (x', _)) -> x = x') env.values
   with Not_found -> raise (UnboundIdentifier (pos, x))
 
+(**
+ * Adds a value of a ADT to the environment.
+ *
+ * @param x name (e.g. Nil)
+ * @param ts variables of the polymorphic type e.g. [Name.TName "'a"]
+ * @param ty type (e.g Types.TyApp (<abstr>, Name.TName "list",
+ *    [Types.TyVar (<abstr>, Name.TName "'a")]))
+ * @param env environment
+ *)
 let bind_scheme x ts ty env =
   { env with values = (ts, (x, ty)) :: env.values }
 
 let bind_simple x ty env =
   bind_scheme x [] ty env
 
+(** 
+ * Adds the type (name, (kind, ast definition)) to the environment.
+ *
+ * @param t name
+ * @param kind kind of the type 
+ *    (e.g list : KArrow (KStar, KStar) gets a non-polymorph type and returns a non-polymorph type)
+ * @param tdef ast definition of the type
+ * @env env current environment 
+ *)
 let bind_type t kind tdef env =
   { env with types = (t, (kind, tdef)) :: env.types }
 
@@ -61,6 +79,13 @@ let is_superclass pos k1 k2 env =
   (* Student! This is your job! *)
   true
 
+(** Creates an empty type variable that will be added to the environment
+ * for the given name (one use is to typecheck polymorphic types, since
+ * we want to check them we need to ar their Var type variables to the env.)
+ *
+ * @param t name of the variable
+ * @param env environment
+ *)
 let bind_type_variable t env =
   bind_type t KStar (TypeDef (undefined_position, KStar, t, DAlgebraic [])) env
 

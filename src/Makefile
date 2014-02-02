@@ -51,6 +51,7 @@ BLIBS  = $(PPRINT)/_build/PPrintLib.cma
 OLIBS  = $(PPRINT)/_build/PPrintLib.cmxa
 
 OCAMLC = ocamlc
+OCAMLDOC = ocamldoc
 OCAMLOPT = ocamlopt
 OCAMLDEP = ocamldep
 OCAMLLEX = ocamllex
@@ -87,6 +88,9 @@ $(EXECUTABLE).opt: $(MODULES:%=%.cmx)
 clean:
 	rm -f $(EXECUTABLE) $(EXECUTABLE).opt parsing/parser.ml parsing/lexer.ml *.cm[iox] **/*.cm[iox] **/*.o *.annot **/*.annot
 
+doc: $(MODULES:%=%.ml)
+	$(OCAMLDOC) $(MODULES:%=%.ml) -d ../doc -html -I . -I inference -I common -I parsing -I elaboration
+
 .depend: $(GENERATED) Makefile
 	$(OCAMLDEP) $(SRC_INCLUDES) $(patsubst %, %.ml, $(MODULES)) \
 		$(patsubst %, %.mli, $(MODULES)) $(GENERATED) > .depend
@@ -94,5 +98,9 @@ clean:
 depend:
 	rm -f .depend
 	$(MAKE) .depend
+
+top:
+	find . -regex .*cmo | sed 's/.cmo//' > all.mltop
+	$(MAKE) .depend ocamlbuild $(FLAGS) all.top
 
 include .depend

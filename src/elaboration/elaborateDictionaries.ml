@@ -25,6 +25,10 @@ and block env = function
 
   | BClassDefinition c ->
     (** Class definitions are ignored. Student! This is your job! *)
+    (* Conditions:
+      * - There's no other class/instance with the same name
+      * - All parent classes exist
+      **)
     ([], env)
 
   | BInstanceDefinitions is ->
@@ -32,11 +36,13 @@ and block env = function
     ([], env)
 
 and type_definitions env (TypeDefs (_, tdefs)) =
+  (* Generates an environment for the givent type_defs *)
   let env = List.fold_left env_of_type_definition env tdefs in
   List.fold_left type_definition env tdefs
 
 and env_of_type_definition env = function
   | (TypeDef (pos, kind, t, _)) as tdef ->
+    (* adds a type to the environment of types *)
     bind_type t kind tdef env
 
   | (ExternalType (p, ts, t, os)) as tdef ->
