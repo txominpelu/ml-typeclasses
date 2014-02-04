@@ -26,14 +26,24 @@ and block env = function
   | BClassDefinition c ->
     (** Class definitions are ignored. Student! This is your job! *)
     (* Conditions:
-      * - There's no other class/instance with the same name
+      * - There's no other class/instance with the same name: (already verified by bind_class)
       * - All parent classes exist
       **)
-    ([], env)
+    let lbl_names = List.map (function (_, _, ty) -> match ty with
+      | TyVar (_, name) -> name
+      | TyApp (_, name, _) -> name
+    ) c.class_members in
+    let datatype_def = DRecordType (lbl_names, c.class_members)  in
+    let mutual_defs = TypeDefs (c.class_position, [TypeDef (c.class_position, (KArrow (KStar, KStar)), c.class_name, datatype_def)]) in
+    let env = type_definitions env mutual_defs in
+    ([BTypeDefinitions mutual_defs], env)
 
   | BInstanceDefinitions is ->
     (** Instance definitions are ignored. Student! This is your job! *)
-    ([], env)
+    (* look if there's a class defined for every given instance *)
+    List.map (fun { instance_position; instance_class_name ; _ } -> lookup_class instance_position instance_class_name env) is;
+
+    ([BInstanceDefinitions is] , env)
 
 and type_definitions env (TypeDefs (_, tdefs)) =
   (* Generates an environment for the givent type_defs *)
@@ -73,6 +83,15 @@ and introduce_type_parameters env ts =
 and check_wf_scheme env ts ty =
   check_wf_type (introduce_type_parameters env ts) KStar ty
 
+(**
+  * Checks
+  * - if the type is not polymorphic if the type passed
+  *   has the same type as the type of the same name found
+  *   found in the environment
+  * - if the type is polymorphic verifies recursively that
+  *   the type is equal to the type stored in the environment
+  *   considering the variable types.
+*)
 and check_wf_type env xkind = function
   | TyVar (pos, t) ->
     let tkind = lookup_type_kind pos t env in
@@ -410,4 +429,3 @@ and is_value_form = function
     is_value_form t
   | _ ->
     false
-

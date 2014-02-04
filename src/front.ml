@@ -30,6 +30,7 @@ let parse_explicitly_typed : (unit, XAST.program) pass
   (xast, ASTio.XAST.pprint_program xast)
 )
 
+
 let is_explicitly_typed_syntax f =
   try
     ignore (ASTio.XAST.parse_program f)
@@ -53,15 +54,12 @@ let compile : (XAST.program, unit) pass
   ((), ASTio.XAST.pprint_program_in_ocaml xast)
 )
 
-(* let process : unit = Options.(
+let process : unit = Options.(
   match filename with
     | EMH f ->
       (parse_explicitly_typed $> elaborate_dictionaries $> compile)
         () (Filename f)
-
     | MH f ->
       (parse $> elaborate_type_annotations $> elaborate_dictionaries $> compile)
         () (Filename f)
-)*)
-
-
+)
