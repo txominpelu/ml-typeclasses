@@ -26,7 +26,17 @@ and block env = function
   | BClassDefinition c ->
     (** Class definitions are ignored. Student! This is your job! *)
     (* Conditions:
-      * - There's no other class/instance with the same name: (already verified by bind_class)
+      * - There's no other class/instance with the same name:
+      *      (already verified by bind_class)
+      * - There's no cycles between classes (eg no K1 > K2 > ... > K1)
+      * - The superclasses of a class are independent in the typing context
+      *   (if class K1 a K2 a ... => K a, then there's no Ki < Kj)
+      * - An overloaded symbol cannot be declared twice in the same class
+      * - An overloaded symbol can only be declared in one class
+      * - The types of the overloaded symbols must be closed with respect to alpha
+      * - The instances of a class must declare all the methods of the class
+      * - For the instance of a class with a superclass there needs to be
+      *   an instance for the superclass with the same alpha defined
       * - All parent classes exist
       **)
     let lbl_names = List.map (function (_, _, ty) -> match ty with
@@ -102,6 +112,7 @@ and check_wf_type env xkind = function
     check_type_constructor_application pos env kt tys
 
 and check_type_constructor_application pos env k tys =
+  print_string ((string_of_kind k) ^ "\n");
   match tys, k with
   | [], KStar -> ()
   | ty :: tys, KArrow (k, ks) ->

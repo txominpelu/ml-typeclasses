@@ -82,3 +82,7 @@ val equivalent : t -> t -> bool
 (** [substitute s ty] returns [ty] on which the substitution [s]
     has been applied. *)
 val substitute : (tname * t) list -> t -> t
+
+val string_of_t : t -> string
+
+val string_of_kind : kind -> string

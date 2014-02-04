@@ -113,7 +113,7 @@ module Make (P : Types.TypingSyntax) = struct
 
   let string_of_tnames typeNames = String.concat " " (List.map string_of_tname typeNames) ;;
 
-  let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) -> 
+  let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) ->
     Printf.sprintf "Classname(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
 
   let string_of_class_predicates cl_predicates = String.concat " " (List.map
@@ -122,7 +122,7 @@ module Make (P : Types.TypingSyntax) = struct
   let string_of_value_def = function
     | ValueDef (position, tnames, class_predicates, binding ,expression) ->
         Printf.sprintf "ValueDef(_, %s, %s, binding, expression)"
-        (string_of_tnames tnames) 
+        (string_of_tnames tnames)
         (string_of_class_predicates class_predicates) ;;
 
   let string_of_value_binding = function
@@ -137,11 +137,11 @@ module Make (P : Types.TypingSyntax) = struct
     | BInstanceDefinitions instances -> "BInstanceDefinition(instances: List)"
     | BTypeDefinitions mutual_defs -> "BTypeDefintions(mutual_defs)"
     | BDefinition value_bind-> Printf.sprintf "BDefinition(%s)"
-    (string_of_value_binding value_bind);; 
-  
-  
+    (string_of_value_binding value_bind);;
 
- 
+
+
+
 end
 
 module Generic = Make (struct
