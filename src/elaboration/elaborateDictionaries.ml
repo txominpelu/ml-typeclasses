@@ -15,8 +15,11 @@ let rec program p = handle_error List.(fun () ->
 )
 
 and block env = function
-  | BTypeDefinitions ts ->
+  | BTypeDefinitions (TypeDefs(_, type_defs) as ts) ->
     let env = type_definitions env ts in
+    print_string "Type:\n";
+    print_string ((String.concat ";" (List.map
+                                       string_of_type_definition type_defs)) ^ "\n");
     ([BTypeDefinitions ts], env)
 
   | BDefinition d ->
@@ -43,8 +46,14 @@ and block env = function
       | TyVar (_, name) -> name
       | TyApp (_, name, _) -> name
     ) c.class_members in
-    let datatype_def = DRecordType (lbl_names, c.class_members)  in
-    let mutual_defs = TypeDefs (c.class_position, [TypeDef (c.class_position, (KArrow (KStar, KStar)), c.class_name, datatype_def)]) in
+    let datatype_def = DRecordType ([c.class_parameter], c.class_members)  in
+    let TName (class_name_string) = c.class_name in
+    let type_name = TName (String.lowercase class_name_string) in
+    let type_defs = [TypeDef (c.class_position, (KArrow (KStar, KStar)), type_name, datatype_def)] in
+    let mutual_defs = TypeDefs (c.class_position, type_defs) in
+    print_string "Type created:\n";
+    print_string ((String.concat ";" (List.map
+                                       string_of_type_definition type_defs)) ^ "\n");
     let env = type_definitions env mutual_defs in
     ([BTypeDefinitions mutual_defs], env)
 
@@ -107,12 +116,15 @@ and check_wf_type env xkind = function
     let tkind = lookup_type_kind pos t env in
     check_equivalent_kind pos xkind tkind
 
-  | TyApp (pos, t, tys) ->
+  | TyApp (pos, (TName tname as t), tys) ->
     let kt = lookup_type_kind pos t env in
+    print_string ("\n" ^ tname);
     check_type_constructor_application pos env kt tys
 
 and check_type_constructor_application pos env k tys =
+  print_string "\n";
   print_string ((string_of_kind k) ^ "\n");
+  print_string ((String.concat "," (List.map string_of_t tys)) ^ "\n");
   match tys, k with
   | [], KStar -> ()
   | ty :: tys, KArrow (k, ks) ->

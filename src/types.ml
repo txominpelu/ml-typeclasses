@@ -114,9 +114,10 @@ let rec substitute (s : (tname * t) list) = function
   | TyApp (pos, t, tys) ->
     TyApp (pos, t, List.map (substitute s) tys)
 
-let string_of_t = function
-  | TyVar (p,v) -> "TyVar(p, v)"
-  | TyApp (pos, t, tys) -> "TyApp(post, t, tys)"
+let rec string_of_t = function
+  | TyVar (p,TName n) -> Printf.sprintf "TyVar(%s)" n
+  | TyApp (pos, TName t, tys) -> Printf.sprintf "TyApp(%s, %s)" t
+    (String.concat "," (List.map string_of_t tys))
 
 let rec string_of_kind = function
   | KStar -> "KStar"

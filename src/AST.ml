@@ -139,6 +139,35 @@ module Make (P : Types.TypingSyntax) = struct
     | BDefinition value_bind-> Printf.sprintf "BDefinition(%s)"
     (string_of_value_binding value_bind);;
 
+  let string_of_datatype_definition = function
+    | DAlgebraic alg ->
+      let inside = String.concat "|"
+      (List.map
+         (fun (_, DName dname, tnames, mltype) ->
+           Printf.sprintf "(%s, %s, %s)"
+             dname
+             (string_of_tnames tnames)
+             (string_of_t mltype)
+         )  alg
+      ) in
+      Printf.sprintf "DAlgebraic(%s)" inside
+    | DRecordType (tnames, record) ->
+      let inside = String.concat ";"
+      (List.map
+         (fun (_, LName lname, mltype) ->
+           Printf.sprintf "(%s, %s)"
+             lname
+             (string_of_t mltype)
+         )  record
+      ) in
+      Printf.sprintf "DRecordType(%s, %s)" (string_of_tnames tnames) inside
+
+  let string_of_type_definition = function
+    | TypeDef (_ , mltypekind , tname , datatype_definition) ->
+      Printf.sprintf "TypeDef(_,%s, %s, %s)" (string_of_kind mltypekind) (string_of_tname tname) (string_of_datatype_definition datatype_definition)
+    | ExternalType (_ , tnames , tname , t) ->
+      Printf.sprintf "ExternalType(_, %s,%s, %s)" (string_of_tnames tnames) (string_of_tname tname) t
+
 
 
 
