@@ -42,6 +42,20 @@ and block env = function
       *   an instance for the superclass with the same alpha defined
       * - All parent classes exist
       **)
+    let mutual_defs = elaborate_class_def c in
+    let env1 = type_definitions env mutual_defs in
+    let env2 = bind_class c.class_name c env1 in
+    ([BTypeDefinitions mutual_defs], env2)
+
+  | BInstanceDefinitions is ->
+    (** Instance definitions are ignored. Student! This is your job! *)
+    (* look if there's a class defined for every given instance *)
+    (* check for repeated instances of the same class for the same type *)
+    List.map (fun { instance_position; instance_class_name ; _ } -> lookup_class instance_position instance_class_name env) is;
+
+    ([BInstanceDefinitions is] , env)
+
+and elaborate_class_def c =
     let lbl_names = List.map (function (_, _, ty) -> match ty with
       | TyVar (_, name) -> name
       | TyApp (_, name, _) -> name
@@ -50,19 +64,7 @@ and block env = function
     let TName (class_name_string) = c.class_name in
     let type_name = TName (String.lowercase class_name_string) in
     let type_defs = [TypeDef (c.class_position, (KArrow (KStar, KStar)), type_name, datatype_def)] in
-    let mutual_defs = TypeDefs (c.class_position, type_defs) in
-    print_string "Type created:\n";
-    print_string ((String.concat ";" (List.map
-                                       string_of_type_definition type_defs)) ^ "\n");
-    let env = type_definitions env mutual_defs in
-    ([BTypeDefinitions mutual_defs], env)
-
-  | BInstanceDefinitions is ->
-    (** Instance definitions are ignored. Student! This is your job! *)
-    (* look if there's a class defined for every given instance *)
-    List.map (fun { instance_position; instance_class_name ; _ } -> lookup_class instance_position instance_class_name env) is;
-
-    ([BInstanceDefinitions is] , env)
+    TypeDefs (c.class_position, type_defs)
 
 and type_definitions env (TypeDefs (_, tdefs)) =
   (* Generates an environment for the givent type_defs *)
@@ -118,13 +120,9 @@ and check_wf_type env xkind = function
 
   | TyApp (pos, (TName tname as t), tys) ->
     let kt = lookup_type_kind pos t env in
-    print_string ("\n" ^ tname);
     check_type_constructor_application pos env kt tys
 
 and check_type_constructor_application pos env k tys =
-  print_string "\n";
-  print_string ((string_of_kind k) ^ "\n");
-  print_string ((String.concat "," (List.map string_of_t tys)) ^ "\n");
   match tys, k with
   | [], KStar -> ()
   | ty :: tys, KArrow (k, ks) ->
