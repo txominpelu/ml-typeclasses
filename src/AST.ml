@@ -23,13 +23,15 @@ module Make (P : Types.TypingSyntax) = struct
     class_members   : (position * lname * mltype) list;
   }
 
+  (* e.g ex1: instance Eq X => Eq (List (X)) { equal = ... } *)
+  (* e.g ex2: instance ['a] Eq int { equal = ... } *)
   and instance_definition = {
     instance_position       : position;
-    instance_parameters     : tname list;
-    instance_typing_context : class_predicate list;
-    instance_class_name     : tname;
-    instance_index          : tname;
-    instance_members        : record_binding list;
+    instance_parameters     : tname list; (* ex1: [], ex2:['a] *)
+    instance_typing_context : class_predicate list; (* ex1: [(Eq, X)], ex2:[] *)
+    instance_class_name     : tname; (* ex1,ex2: eq Eq *)
+    instance_index          : tname; (* ex1: list, ex2: int *)
+    instance_members        : record_binding list; (* ex1, ex2: [equal=..., ] *)
   }
 
   and value_binding =
@@ -107,23 +109,30 @@ module Make (P : Types.TypingSyntax) = struct
 
   and mltypekind = Types.kind
 
+  let string_of_list func list= "["^(String.concat ";" (List.map func list))^"]"
+
   let string_of_name name = match name with Name sName -> sName ;;
 
   let string_of_tname tname = match tname with TName name -> name ;;
 
+  let string_of_lname (LName lname) = lname ;;
+
   let string_of_tnames typeNames = String.concat " " (List.map string_of_tname typeNames) ;;
 
+
   let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) ->
-    Printf.sprintf "Classname(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
+    Printf.sprintf "ClassPredicate(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
 
   let string_of_class_predicates cl_predicates = String.concat " " (List.map
   string_of_class_predicate cl_predicates) ;;
 
   let string_of_value_def = function
     | ValueDef (position, tnames, class_predicates, binding ,expression) ->
-        Printf.sprintf "ValueDef(_, %s, %s, binding, expression)"
-        (string_of_tnames tnames)
-        (string_of_class_predicates class_predicates) ;;
+        Printf.sprintf "ValueDef(_, %s, %s, %s, %s)"
+        (string_of_list string_of_tname tnames)
+        (string_of_list string_of_class_predicate class_predicates)
+        (string_of_binding binding)
+        "expression";;
 
   let string_of_value_binding = function
     | BindValue (pos, value_defs) -> Printf.sprintf "BindValue(_, %s)"
@@ -131,6 +140,9 @@ module Make (P : Types.TypingSyntax) = struct
     | BindRecValue (pos, value_defs) -> Printf.sprintf "BindRecValue(_,%s)"
     (String.concat " " (List.map string_of_value_def value_defs))
     | ExternalValue (pos, tnames, binding, str) -> "ExternalValue(_, tnames, binding, string)";;
+
+  let string_of_record_binding = function
+    | RecordBinding (LName lname, expression) -> Printf.sprintf "RecordBinding(%s, expr)" lname
 
   let string_of_block = function
     | BClassDefinition class_def -> "BClassDefinition(classDef)"
@@ -181,6 +193,7 @@ module Generic = Make (struct
   let instantiation _ _ = assert false
   let destruct_instantiation_as_type_applications _ = assert false
   let destruct_instantiation_as_type_constraint _ = assert false
+  let string_of_binding _ = assert false
 end)
 
 module type GenericS = module type of Generic

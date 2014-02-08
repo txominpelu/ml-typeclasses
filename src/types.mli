@@ -43,6 +43,8 @@ module type TypingSyntax = sig
   val destruct_instantiation_as_type_applications
     : instantiation -> t list option
 
+  val string_of_binding : binding -> string
+
 end
 
 (** The typing syntax for implicitly typed ML. *)

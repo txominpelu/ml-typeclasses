@@ -24,6 +24,8 @@ and block env = function
 
   | BDefinition d ->
     let d, env = value_binding env d in
+    print_string "Definition:\n";
+    print_string (string_of_value_binding d);
     ([BDefinition d], env)
 
   | BClassDefinition c ->
@@ -51,19 +53,46 @@ and block env = function
     (** Instance definitions are ignored. Student! This is your job! *)
     (* look if there's a class defined for every given instance *)
     (* check for repeated instances of the same class for the same type *)
+    print_string "\nTal\n";
+    let instances_elab = List.map elaborate_instance_def is in
+    let definitions = List.map (function elab -> BDefinition elab) instances_elab in
+    List.iter (fun d -> print_string (string_of_value_binding d)) instances_elab;
+    let newenv = List.fold_left (function env -> function inst -> snd (value_binding env inst)) env instances_elab in
     List.map (fun { instance_position; instance_class_name ; _ } -> lookup_class instance_position instance_class_name env) is;
 
-    ([BInstanceDefinitions is] , env)
+    (definitions , newenv)
+    (*([BInstanceDefinitions is] , newenv)*)
+
+ and elaborate_instance_def instance_def =
+  let { instance_parameters; instance_typing_context; instance_class_name; instance_index; instance_members; instance_position } = instance_def in
+  print_string "\n";
+  print_string (Printf.sprintf "Instance_params=%s" (string_of_list string_of_tname instance_parameters));
+  print_string "\n";
+  print_string (Printf.sprintf "Typing_context=%s"  (string_of_list string_of_class_predicate instance_typing_context));
+  print_string "\n";
+  print_string (string_of_tname instance_class_name);
+  print_string "\n";
+  print_string (string_of_tname instance_index);
+  print_string "\n";
+  print_string (string_of_list string_of_record_binding instance_members);
+  print_string "\n";
+  let RecordBinding(label, member) = (List.hd instance_members) in
+  let TName i_class_name = instance_class_name in
+  let TName i_index = instance_index in
+  let t_int = TyApp(instance_position, TName "int", []) in
+  let kind = TyApp(instance_position, TName "->", [t_int; t_int]) in
+  BindValue(instance_position, [ValueDef(instance_position, instance_parameters, instance_typing_context, (Name ("s"^i_class_name^i_index),kind), member)])
+
 
 and elaborate_class_def c =
-    let lbl_names = List.map (function (_, _, ty) -> match ty with
-      | TyVar (_, name) -> name
-      | TyApp (_, name, _) -> name
-    ) c.class_members in
-    let datatype_def = DRecordType ([c.class_parameter], c.class_members)  in
-    let TName (class_name_string) = c.class_name in
-    let type_name = TName (String.lowercase class_name_string) in
-    let type_defs = [TypeDef (c.class_position, (KArrow (KStar, KStar)), type_name, datatype_def)] in
+  let lbl_names = List.map (function (_, _, ty) -> match ty with
+    | TyVar (_, name) -> name
+    | TyApp (_, name, _) -> name
+  ) c.class_members in
+  let datatype_def = DRecordType ([c.class_parameter], c.class_members)  in
+  let TName (class_name_string) = c.class_name in
+  let type_name = TName (String.lowercase class_name_string) in
+  let type_defs = [TypeDef (c.class_position, (KArrow (KStar, KStar)), type_name, datatype_def)] in
     TypeDefs (c.class_position, type_defs)
 
 and type_definitions env (TypeDefs (_, tdefs)) =
@@ -153,6 +182,7 @@ and env_of_bindings env cdefs = List.(
 )
 
 and check_equal_types pos ty1 ty2 =
+  print_string (Printf.sprintf "\nchecking\n=(%s,%s)" (string_of_t ty1) (string_of_t ty2));
   if not (equivalent ty1 ty2) then
     raise (IncompatibleTypes (pos, ty1, ty2))
 

@@ -31,6 +31,15 @@ let rec destruct_ntyarrow ty =
     | None -> ([], ty)
     | Some (i, o) -> let (is, o) = destruct_ntyarrow o in (i :: is, o)
 
+let rec string_of_t = function
+  | TyVar (p,TName n) -> Printf.sprintf "TyVar(%s)" n
+  | TyApp (pos, TName t, tys) -> Printf.sprintf "TyApp(%s, %s)" t
+    (String.concat "," (List.map string_of_t tys))
+
+let rec string_of_kind = function
+  | KStar -> "KStar"
+  | KArrow (k1, k2) -> Printf.sprintf "KArrow(%s, %s)" (string_of_kind k1) (string_of_kind k2)
+
 type instantiation_kind =
   | TypeApplication of t list
   | LeftImplicit
@@ -52,6 +61,7 @@ module type TypingSyntax = sig
   val destruct_instantiation_as_type_applications
     : instantiation -> t list option
 
+  val string_of_binding : binding -> string
 end
 
 module ImplicitTyping =
@@ -71,6 +81,10 @@ struct
       None
 
   let destruct_instantiation_as_type_applications _ = None
+
+  let string_of_binding b = match b with
+    | (Name tname, Some t) -> Printf.sprintf "(%s,%s)" tname  (string_of_t t)
+    | (Name tname, None) -> Printf.sprintf "(%s,None)" tname
 end
 
 module ExplicitTyping =
@@ -91,6 +105,9 @@ struct
     | TypeApplication i -> i
 
   let destruct_instantiation_as_type_applications i = Some i
+
+  let string_of_binding b = match b with
+    | (Name tname, t) -> Printf.sprintf "(%s,%s)" tname  (string_of_t t)
 
 end
 
@@ -113,12 +130,3 @@ let rec substitute (s : (tname * t) list) = function
 
   | TyApp (pos, t, tys) ->
     TyApp (pos, t, List.map (substitute s) tys)
-
-let rec string_of_t = function
-  | TyVar (p,TName n) -> Printf.sprintf "TyVar(%s)" n
-  | TyApp (pos, TName t, tys) -> Printf.sprintf "TyApp(%s, %s)" t
-    (String.concat "," (List.map string_of_t tys))
-
-let rec string_of_kind = function
-  | KStar -> "KStar"
-  | KArrow (k1, k2) -> Printf.sprintf "KArrow(%s, %s)" (string_of_kind k1) (string_of_kind k2)

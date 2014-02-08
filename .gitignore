@@ -7,3 +7,9 @@
 *.cmx
 *.cmxs
 *.cmxa
+*.cmti
+*.cmt
+*.mlr
+*.mlse
+src/parsing/pprint-20130324/src/_build/
+*.*~
