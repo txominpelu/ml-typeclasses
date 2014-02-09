@@ -61,3 +61,12 @@ val bind_label : position -> lname -> tnames -> Types.t -> tname -> t -> t
     the record type constructor of the label [l] in [e]. *)
 val lookup_label : position -> lname -> t -> tnames * Types.t * tname
 
+val string_of_env_values  : t -> string
+
+val string_of_env_types  : t -> string
+
+val string_of_env_labels  : t -> string
+
+val string_of_env_classes  : t -> string
+
+val string_of_env  : t -> string

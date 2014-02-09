@@ -35,14 +35,14 @@ let bind_scheme x ts ty env =
 let bind_simple x ty env =
   bind_scheme x [] ty env
 
-(** 
+(**
  * Adds the type (name, (kind, ast definition)) to the environment.
  *
  * @param t name
- * @param kind kind of the type 
+ * @param kind kind of the type
  *    (e.g list : KArrow (KStar, KStar) gets a non-polymorph type and returns a non-polymorph type)
  * @param tdef ast definition of the type
- * @env env current environment 
+ * @env env current environment
  *)
 let bind_type t kind tdef env =
   { env with types = (t, (kind, tdef)) :: env.types }
@@ -113,3 +113,28 @@ let initial =
     (TName "unit", KStar)
   ]
 
+let string_of_env_values { values; _ } =
+    (string_of_list (fun (tnames, bind) -> Printf.sprintf "(%s,%s)" (string_of_tnames tnames) (string_of_binding bind)) values)
+
+let string_of_env_types { types; _ } =
+    (string_of_list (fun (tname, (kind, type_def))-> Printf.sprintf "(%s,(%s,%s))" (string_of_tname tname) (string_of_kind kind) (string_of_type_definition type_def)) types)
+
+let string_of_env_classes { classes; _ } =
+    (string_of_list (fun (tname, class_def)-> Printf.sprintf "(%s,%s)" (string_of_tname tname) (string_of_class_definition class_def)) classes)
+
+let string_of_env_labels { labels; _ } =
+    (string_of_list (fun (LName lname, (tnames, mltype, TName tname))-> Printf.sprintf "(%s,(%s,%s,%s))" lname (string_of_tnames tnames) (string_of_t mltype) tname) labels)
+
+(*type t = {
+  values       : (tnames * binding) list;
+  types        : (tname * (Types.kind * type_definition)) list;
+  classes      : (tname * class_definition) list;
+  labels       : (lname * (tnames * Types.t * tname)) list;
+}*)
+let string_of_env env  =
+  let { values; types; classes; labels } = env in
+  Printf.sprintf "{ values = %s; types = %s; classes = %s; labels = %s }"
+    (string_of_env_values env)
+    (string_of_env_types env)
+    (string_of_env_classes env)
+    (string_of_env_labels env)

@@ -117,7 +117,7 @@ module Make (P : Types.TypingSyntax) = struct
 
   let string_of_lname (LName lname) = lname ;;
 
-  let string_of_tnames typeNames = String.concat " " (List.map string_of_tname typeNames) ;;
+  let string_of_tnames typeNames = string_of_list string_of_tname typeNames ;;
 
 
   let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) ->
@@ -143,6 +143,39 @@ module Make (P : Types.TypingSyntax) = struct
 
   let string_of_record_binding = function
     | RecordBinding (LName lname, expression) -> Printf.sprintf "RecordBinding(%s, expr)" lname
+
+  (* instance_definition = {
+    instance_position       : position;
+    instance_parameters     : tname list; (* ex1: [], ex2:['a] *)
+    instance_typing_context : class_predicate list; (* ex1: [(Eq, X)], ex2:[] *)
+    instance_class_name     : tname; (* ex1,ex2: eq Eq *)
+    instance_index          : tname; (* ex1: list, ex2: int *)
+    instance_members        : record_binding list; (* ex1, ex2: [equal=..., ] *)
+  }*)
+
+  let string_of_instance_definition { instance_parameters; instance_typing_context; instance_class_name; instance_index; instance_members } =
+    Printf.sprintf "{ params = %s; typing_context = %s; class = %s; index = %s; members = %s }"
+      (string_of_tnames instance_parameters)
+      (string_of_class_predicates instance_typing_context)
+      (string_of_tname instance_class_name)
+      (string_of_tname instance_index)
+      (string_of_list string_of_record_binding instance_members);;
+
+  (* class_definition = {
+    class_position  : position;
+    class_parameter : tname;
+    superclasses    : tname list;
+    class_name      : tname;
+    class_members   : (position * lname * mltype) list;
+  } *)
+
+  let string_of_class_definition { class_parameter; superclasses; class_name; class_members } =
+    Printf.sprintf "BClassDefinition(%s, %s, %s, %s)"
+      (string_of_tname class_parameter)
+      (string_of_tnames superclasses)
+      (string_of_tname class_name)
+      (string_of_list (fun (_, LName lname, mltype) -> Printf.sprintf "(%s,%s)" lname (string_of_t mltype)) class_members);;
+
 
   let string_of_block = function
     | BClassDefinition class_def -> "BClassDefinition(classDef)"

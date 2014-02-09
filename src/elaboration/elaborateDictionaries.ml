@@ -53,21 +53,32 @@ and block env = function
     (** Instance definitions are ignored. Student! This is your job! *)
     (* look if there's a class defined for every given instance *)
     (* check for repeated instances of the same class for the same type *)
-    let instances_elab = List.map elaborate_instance_def is in
+    let instances_elab = List.map (fun x -> elaborate_instance_def x env) is in
     let (instances_binded, newenv) = (Misc.list_foldmap value_binding env instances_elab) in
     let definitions = List.map (function elab -> BDefinition elab) instances_binded in
     List.map (fun { instance_position; instance_class_name ; _ } -> lookup_class instance_position instance_class_name env) is;
     (definitions , newenv)
     (*([BInstanceDefinitions is] , newenv)*)
 
- and elaborate_instance_def instance_def =
+ and elaborate_instance_def instance_def env =
+  string_of_instance_definition instance_def;
   let { instance_parameters; instance_typing_context; instance_class_name; instance_index; instance_members; instance_position } = instance_def in
   let RecordBinding(label, member) = (List.hd instance_members) in
   let TName i_class_name = instance_class_name in
   let TName i_index = instance_index in
   let t_int = TyApp(instance_position, TName "int", []) in
   let kind = TyApp(instance_position, TName "->", [t_int; t_int]) in
+  build_instance_member_kind instance_class_name member env;
+  (* To find the kind of the def we need to find the type of the def
+     in the class and then replace the parametric type by the instance index
+     IMPORTANT: Test this with List type that should be resolved to:
+     let eqList ['X] (EqX: EqX) : Eq (List X) = { (eq : List['X] -> List ['X] -> bool) ... }
+  *)
   BindValue(instance_position, [ValueDef(instance_position, instance_parameters, instance_typing_context, (Name ("s"^i_class_name^i_index),kind), member)])
+
+and build_instance_member_kind class_name member env =
+  print_string (string_of_env env)
+
 
 
 and elaborate_class_def c =
