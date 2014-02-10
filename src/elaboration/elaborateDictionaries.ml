@@ -24,8 +24,6 @@ and block env = function
 
   | BDefinition d ->
     let d, env = value_binding env d in
-    print_string "Definition:\n";
-    print_string (string_of_value_binding d);
     ([BDefinition d], env)
 
   | BClassDefinition c ->
@@ -61,14 +59,11 @@ and block env = function
     (*([BInstanceDefinitions is] , newenv)*)
 
  and elaborate_instance_def instance_def env =
-  string_of_instance_definition instance_def;
   let { instance_parameters; instance_typing_context; instance_class_name; instance_index; instance_members; instance_position } = instance_def in
   let RecordBinding(label, member) = (List.hd instance_members) in
   let TName i_class_name = instance_class_name in
   let TName i_index = instance_index in
-  let t_int = TyApp(instance_position, TName "int", []) in
-  let kind = TyApp(instance_position, TName "->", [t_int; t_int]) in
-  build_instance_member_kind instance_class_name member env;
+  let kind = build_instance_member_t instance_position label instance_index instance_class_name env in
   (* To find the kind of the def we need to find the type of the def
      in the class and then replace the parametric type by the instance index
      IMPORTANT: Test this with List type that should be resolved to:
@@ -76,10 +71,10 @@ and block env = function
   *)
   BindValue(instance_position, [ValueDef(instance_position, instance_parameters, instance_typing_context, (Name ("s"^i_class_name^i_index),kind), member)])
 
-and build_instance_member_kind class_name member env =
-  print_string (string_of_env env)
-
-
+and build_instance_member_t pos label instance_index class_name env =
+  let (param_types, t, name) = lookup_label pos label env in
+  let { class_parameter } = lookup_class pos class_name env in
+  Types.substitute [(class_parameter, TyApp(pos, instance_index, []))] t
 
 and elaborate_class_def c =
   let lbl_names = List.map (function (_, _, ty) -> match ty with
@@ -179,7 +174,6 @@ and env_of_bindings env cdefs = List.(
 )
 
 and check_equal_types pos ty1 ty2 =
-  print_string (Printf.sprintf "\nchecking\n=(%s,%s)" (string_of_t ty1) (string_of_t ty2));
   if not (equivalent ty1 ty2) then
     raise (IncompatibleTypes (pos, ty1, ty2))
 

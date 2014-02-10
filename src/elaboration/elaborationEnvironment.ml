@@ -4,11 +4,23 @@ open XAST
 open Types
 open ElaborationExceptions
 
+(**
+ * For example the class_definition:
+ * class Hashable 'a { hash : 'a -> int }
+ *
+ * Adds the following to the environment (not included: let hash ['a] (hashA : hashable ['a]) : a' -> int = hashA.hash ):
+ *
+ * classes => [(hashable,(KArrow(KStar, KStar),TypeDef(_,KArrow(KStar, KStar), hashable, DRecordType(['a], (hash, TyApp(->, TyVar('a),TyApp(int, )))))))]
+ *
+ * types => (hashable,(KArrow(KStar, KStar),TypeDef(_,KArrow(KStar, KStar), hashable, DRecordType(['a], (hash, TyApp(->, TyVar('a),TyApp(int, )))))))
+ *
+ * labels => [(hash,(['a],TyApp(->, TyVar('a),TyApp(int, )),hashable))]
+ *)
 type t = {
   values       : (tnames * binding) list;
   types        : (tname * (Types.kind * type_definition)) list;
   classes      : (tname * class_definition) list;
-  labels       : (lname * (tnames * Types.t * tname)) list;
+  labels       : (lname * (tnames (* param types*) * Types.t (*kind*) * tname (*class*))) list;
 }
 
 let empty = { values = []; types = []; classes = []; labels = [] }
