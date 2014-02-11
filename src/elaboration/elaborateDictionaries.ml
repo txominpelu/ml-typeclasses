@@ -24,6 +24,11 @@ and block env = function
 
   | BDefinition d ->
     let d, env = value_binding env d in
+    print_string "Value binding:\n";
+    print_string (string_of_value_binding d);
+    let a = match d with
+    | BindValue(_, [ValueDef(_,_,_,_,EVar(_,_,_))]) -> print_string "\nExpr\n"
+    | _ -> () ; in
     ([BDefinition d], env)
 
   | BClassDefinition c ->
@@ -49,8 +54,11 @@ and block env = function
 
   | BInstanceDefinitions is ->
     (** Instance definitions are ignored. Student! This is your job! *)
-    (* look if there's a class defined for every given instance *)
-    (* check for repeated instances of the same class for the same type *)
+    (* look if there's a class defined for every given instance
+     * - The instances of a class must declare all the methods of the class
+     * check for repeated instances of the same class for the same type *)
+    (*let instances_elab = List.( flatten (map (fun x -> elaborate_instance_def x env) is)) in
+    let (instances_binded, newenv) = (Misc.list_foldmap value_binding env instances_elab) in*)
     let instances_elab = List.map (fun x -> elaborate_instance_def x env) is in
     let (instances_binded, newenv) = (Misc.list_foldmap value_binding env instances_elab) in
     let definitions = List.map (function elab -> BDefinition elab) instances_binded in
@@ -58,23 +66,25 @@ and block env = function
     (definitions , newenv)
     (*([BInstanceDefinitions is] , newenv)*)
 
+ and generate_type_name class_name index = "s"^class_name^index
+
  and elaborate_instance_def instance_def env =
   let { instance_parameters; instance_typing_context; instance_class_name; instance_index; instance_members; instance_position } = instance_def in
-  let RecordBinding(label, member) = (List.hd instance_members) in
   let TName i_class_name = instance_class_name in
   let TName i_index = instance_index in
-  let kind = build_instance_member_t instance_position label instance_index instance_class_name env in
-  (* To find the kind of the def we need to find the type of the def
-     in the class and then replace the parametric type by the instance index
-     IMPORTANT: Test this with List type that should be resolved to:
-     let eqList ['X] (EqX: EqX) : Eq (List X) = { (eq : List['X] -> List ['X] -> bool) ... }
-  *)
-  BindValue(instance_position, [ValueDef(instance_position, instance_parameters, instance_typing_context, (Name ("s"^i_class_name^i_index),kind), member)])
+  let kind = build_record_kind instance_position (TName i_class_name) (TName i_index) in
+  let record_name = Name (generate_type_name i_class_name i_index) in
+  let record = ERecordCon(instance_position, record_name, [TyApp(instance_position, instance_index, [])], instance_members) in
+  BindValue(instance_position, [ValueDef(instance_position, instance_parameters, instance_typing_context, (record_name,kind),record)])
+
+and build_record_kind pos class_name instance_index =
+  let TName i_class_name = class_name in
+  TyApp(pos, TName (String.lowercase i_class_name), [TyApp(pos, instance_index,[] )])
 
 and build_instance_member_t pos label instance_index class_name env =
-  let (param_types, t, name) = lookup_label pos label env in
-  let { class_parameter } = lookup_class pos class_name env in
-  Types.substitute [(class_parameter, TyApp(pos, instance_index, []))] t
+ let (param_types, t, name) = lookup_label pos label env in
+ let { class_parameter } = lookup_class pos class_name env in
+ Types.substitute [(class_parameter, TyApp(pos, instance_index, []))] t
 
 and elaborate_class_def c =
   let lbl_names = List.map (function (_, _, ty) -> match ty with
