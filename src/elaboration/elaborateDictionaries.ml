@@ -21,6 +21,8 @@ and block env = function
 
   | BDefinition d ->
     let d, env = value_binding env d in
+    print_string "Value binding:\n";
+    print_string (string_of_value_binding d);
     ([BDefinition d], env)
 
   | BClassDefinition c ->
@@ -42,7 +44,10 @@ and block env = function
     let mutual_defs = elaborate_class_def c in
     let env1 = type_definitions env mutual_defs in
     let env2 = bind_class c.class_name c env1 in
-    ([BTypeDefinitions mutual_defs], env2)
+    let defs = List.map (elaborate_class_member c) c.class_members in
+    let (defs_binded, newenv) = (Misc.list_foldmap value_binding env2 defs) in
+    let bdefs = List.map (fun x -> BDefinition x) defs_binded in
+    ((BTypeDefinitions mutual_defs) :: bdefs, newenv)
 
   | BInstanceDefinitions is ->
     (** Instance definitions are ignored. Student! This is your job! *)
@@ -76,6 +81,19 @@ and elaborate_class_def c =
   let type_name = TName (String.lowercase class_name_string) in
   let type_defs = [TypeDef (c.class_position, (KArrow (KStar, KStar)), type_name, datatype_def)] in
     TypeDefs (c.class_position, type_defs)
+
+and elaborate_class_member cl (member_pos, LName m_name, member_type)  =
+  let TName c_name = cl.class_name in
+  let type_name = String.lowercase c_name in
+  let expression = EForall (member_pos, [cl.class_parameter], ELambda(member_pos,
+		(Name.Name "x", TyApp(member_pos, TName type_name,
+                                      [TyVar(member_pos, cl.class_parameter)])),
+                ERecordAccess (member_pos, EVar (member_pos, Name.Name "x", []), LName m_name))) in
+  let member_def = ValueDef(member_pos, [cl.class_parameter], [],
+                            (Name m_name,TyApp(member_pos, TName "->",
+                              [TyApp(member_pos, TName type_name, [TyVar(member_pos,cl.class_parameter)]);
+                               member_type])), expression) in
+  BindValue(member_pos, [member_def])
 
 and type_definitions env (TypeDefs (_, tdefs)) =
   (* Generates an environment for the givent type_defs *)
