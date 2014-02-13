@@ -120,8 +120,9 @@ module Make (P : Types.TypingSyntax) = struct
   let string_of_tnames typeNames = string_of_list string_of_tname typeNames ;;
 
 
-  let string_of_class_predicate predicate = match predicate with ClassPredicate (name1, name2) ->
-    Printf.sprintf "ClassPredicate(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
+  let string_of_class_predicate = function
+    | ClassPredicate (name1, name2) ->
+      Printf.sprintf "ClassPredicate(%s,%s)" (string_of_tname name1) (string_of_tname name2) ;;
 
   let string_of_class_predicates cl_predicates = String.concat " " (List.map
   string_of_class_predicate cl_predicates) ;;

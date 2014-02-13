@@ -20,9 +20,9 @@ and block env = function
     ([BTypeDefinitions ts], env)
 
   | BDefinition d ->
-    let d, env = value_binding env d in
     print_string "Value binding:\n";
     print_string (string_of_value_binding d);
+    let d, env = value_binding env d in
     ([BDefinition d], env)
 
   | BClassDefinition c ->
