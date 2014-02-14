@@ -45,6 +45,8 @@ val bind_type_variable : tname -> t -> t
 (** [lookup_class pos c e] returns the class_definition of [c] in [e]. *)
 val lookup_class : position -> tname -> t -> class_definition
 
+val class_exists : tname -> t -> bool
+
 (** [is_superclass pos k1 k2 e] returns [true] if [k2] is a superclass of
     [k1] in [e]. *)
 val is_superclass : position -> tname -> tname -> t -> bool

@@ -33,8 +33,8 @@ let rec destruct_ntyarrow ty =
 
 let rec string_of_t = function
   | TyVar (p,TName n) -> Printf.sprintf "TyVar(%s)" n
-  | TyApp (pos, TName t, tys) -> Printf.sprintf "TyApp(%s, %s)" t
-    (String.concat "," (List.map string_of_t tys))
+  | TyApp (pos, TName t, tys) -> Printf.sprintf "TyApp(%s, [%s])" t
+    (String.concat ";" (List.map string_of_t tys))
 
 let rec string_of_kind = function
   | KStar -> "KStar"

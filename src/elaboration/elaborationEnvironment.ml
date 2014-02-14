@@ -71,6 +71,12 @@ let lookup_type_kind pos t env =
 let lookup_type_definition pos t env =
   snd (lookup_type pos t env)
 
+let class_exists k env =
+  try
+    List.assoc k env.classes;
+    true
+  with Not_found -> false
+
 let lookup_class pos k env =
   try
     List.assoc k env.classes
