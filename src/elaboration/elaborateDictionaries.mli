@@ -18,3 +18,6 @@ val eforall : Positions.position ->
 
 val expression : ElaborationEnvironment.t ->
            XAST.expression -> XAST.expression * XAST.mltype
+
+val elaborate_instance_def : XAST.instance_definition ->
+           ElaborationEnvironment.t -> XAST.value_binding
