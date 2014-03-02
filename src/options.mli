@@ -5,4 +5,4 @@ type source =
   | MH of string
 
 (** The filename that has been provided on the command line. *)
-val filename: source
+val filename: unit -> source

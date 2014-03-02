@@ -8,7 +8,7 @@ type source =
   | EMH of string
   | MH of string
 
-let filename =
+let filename = (function _ ->
   let filename = ref None in
   Arg.parse options (fun s -> filename := Some s) message;
   match !filename with
@@ -19,4 +19,4 @@ let filename =
       else if Filename.check_suffix filename ".mlt" then
         MH filename
       else
-        Errors.fatal [] "Only .mlt and .mle files are accepted."
+        Errors.fatal [] "Only .mlt and .mle files are accepted.")

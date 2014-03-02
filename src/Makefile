@@ -32,6 +32,7 @@ MODULES =					\
   inference/constraintGeneration		\
   inference/inferenceErrors			\
   inference/inferTypes				\
+  elaboration/rewrite		                \
   elaboration/elaborationExceptions		\
   elaboration/elaborationErrors 		\
   elaboration/elaborationEnvironment 		\
@@ -66,6 +67,9 @@ pprint:
 
 $(EXECUTABLE): $(MODULES:%=%.cmo)
 	$(OCAMLC) $(BFLAGS) -o $(EXECUTABLE) $(BLIBS) $(MODULES:%=%.cmo)
+
+test.native: $(MODULES:%=%.cmo)
+	ocamlfind $(OCAMLC) $(BFLAGS) -package oUnit -o test $(BLIBS) -linkpkg -g $(MODULES:%=%.cmo) ../test/unit/CheckClass.ml
 
 $(EXECUTABLE).opt: $(MODULES:%=%.cmx)
 	$(OCAMLOPT) $(OFLAGS) -o $(EXECUTABLE) $(OLIBS) $(MODULES:%=%.cmx)

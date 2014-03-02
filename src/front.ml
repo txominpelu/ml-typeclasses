@@ -54,8 +54,9 @@ let compile : (XAST.program, unit) pass
   ((), ASTio.XAST.pprint_program_in_ocaml xast)
 )
 
+(*
 let process : unit = Options.(
-  match filename with
+  match filename () with
     | EMH f ->
       (parse_explicitly_typed $> elaborate_dictionaries $> compile)
         () (Filename f)
@@ -63,3 +64,4 @@ let process : unit = Options.(
       (parse $> elaborate_type_annotations $> elaborate_dictionaries $> compile)
         () (Filename f)
 )
+*)
