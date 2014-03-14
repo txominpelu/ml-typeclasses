@@ -19,21 +19,34 @@ type method_definition = {
  *
  *
  **)
-let rec rewrite overl_symbol : expression -> expression = function
+let rec rewrite overl_symbol typecheck: expression -> expression = function
   | EVar (_, _, _) as var -> var
-  | ELambda (pos, b, e') -> ELambda(pos, b, rewrite overl_symbol e')
+  | ELambda (pos, b, e') -> ELambda(pos, b, rewrite overl_symbol typecheck e')
   | EApp (pos, (EVar(_, Name name, t) as a), b) when name = overl_symbol.to_rewrite ->
+    let (_, t) = typecheck a in
+    print_string "\nType:\n";
+    print_string (string_of_t t);
+    print_string "\n";
     let newa = EApp(pos, a, EVar(pos, Name overl_symbol.param_name, [])) in
-    EApp(pos, newa, rewrite overl_symbol b)
-  | EApp (pos, a, b) -> EApp (pos, rewrite overl_symbol a, rewrite overl_symbol b)
-  | EBinding (pos, vb, e) -> EBinding (pos, vb, rewrite overl_symbol e)
-  | EForall (pos, tvs, e) -> EForall(pos, tvs, rewrite overl_symbol e)
-  | ETypeConstraint (pos, e, xty) -> ETypeConstraint (pos, rewrite overl_symbol e, xty)
-  | EExists (pos , t, e) -> EExists (pos, t, rewrite overl_symbol e)
-  | EDCon (pos, name, tys, es) -> EDCon (pos, name, tys, List.map (rewrite overl_symbol) es)
-  | EMatch (pos, s, bs) -> EMatch (pos, rewrite overl_symbol s, bs)
-  | ERecordAccess (pos, e, l) -> ERecordAccess (pos, rewrite overl_symbol e, l)
+    EApp(pos, newa, rewrite overl_symbol typecheck b)
+  | EApp (pos, a, b) -> EApp (pos, rewrite overl_symbol typecheck a, rewrite overl_symbol typecheck b)
+  | EBinding (pos, vb, e) -> EBinding (pos, vb, rewrite overl_symbol typecheck e)
+  | EForall (pos, tvs, e) -> EForall(pos, tvs, rewrite overl_symbol typecheck e)
+  | ETypeConstraint (pos, e, xty) -> ETypeConstraint (pos, rewrite overl_symbol typecheck e, xty)
+  | EExists (pos , t, e) -> EExists (pos, t, rewrite overl_symbol typecheck e)
+  | EDCon (pos, name, tys, es) -> EDCon (pos, name, tys, List.map (rewrite overl_symbol typecheck) es)
+  | EMatch (pos, s, branches) ->
+    let rewritten_branches = List.map ( function Branch(pos2, pattern, expr) ->
+      Branch(pos2, pattern, rewrite overl_symbol typecheck expr)
+    ) branches in
+    EMatch (pos, rewrite overl_symbol typecheck s, rewritten_branches)
+  | ERecordAccess (pos, e, l) -> ERecordAccess (pos, rewrite overl_symbol typecheck e, l)
   | ERecordCon (pos, n, i, []) -> assert false
+  | ERecordCon (pos, n, i, record_bindings) ->
+    let rewritten_bindings = List.map ( function RecordBinding(l, expr) ->
+      RecordBinding(l, rewrite overl_symbol typecheck expr)
+    ) record_bindings in
+    ERecordCon (pos, n, i, rewritten_bindings)
   | other -> other
 
 let class_type_name p_name = TName (String.lowercase p_name)
@@ -41,10 +54,10 @@ let class_type_name p_name = TName (String.lowercase p_name)
 (**
  * Rewrites the calls to all the overloaded symbols of a class in a term
  **)
-let rewrite_all_labels class_members term =
+let rewrite_all_labels class_members class_name term typecheck =
   List.fold_left ( function acc -> function (_, LName lname, _) ->
-    let param_name = (String.uncapitalize lname) ^ "X" in
-    rewrite { param_name = param_name; to_rewrite = lname } acc
+    let param_name = (String.uncapitalize class_name) ^ "X" in
+    rewrite { param_name = param_name; to_rewrite = lname } typecheck acc
   ) term class_members
 
 let wrap_with_function pos term = function
@@ -52,30 +65,3 @@ let wrap_with_function pos term = function
     let t = TyApp (pos, class_type_name pred_type, [TyVar (pos, pred_name)]) in
     let name = (String.uncapitalize pred_type)^"X" in
     ELambda (pos, (Name name, t), term)
-
-(**
-  * Rewrites a term that depends on an a dictionary.
-  * e.g
-  * - The term: let rec ['a ] [Hashable 'a] (search: 'a -> int) = ['a] fun (x: 'a) -> hash['a] x[]
-  * - to: let rec ['a] (search: 'a hashable -> 'a -> int) = ['a] fun (hashX : 'a hashable) -> fun (x: 'a) -> hash['a] x[]
-  *   giving the term the type: 'a hashable -> 'a -> int
-  *
-  * Basically it just adds another function that injects the dictionary and changes the type of the function.
-  *
-  * Note: After calling this method its still necessary to replace calls to overloaded symbols:
-  * in the example hash['a] x[] still needs to be replaced by hash['a] hashX[] x[] (this needs to be done with rewrite)
-**)
-
-let replace_term_def = function
-    | ValueDef(pos, param_types, class_predicates, (val_name, t), expr) when List.length class_predicates > 0 ->
-      let new_type = List.map (function
-        | ClassPredicate(TName pred_type, pred_name) ->
-          TyApp(pos, class_type_name pred_type, [TyVar(pos, pred_name)])
-        ) class_predicates in
-      let EForall (_, [params], left) = expr in
-      let new_expr = List.fold_left (function term -> wrap_with_function pos term) left class_predicates in
-      let t_out = TyApp(pos, TName "->", new_type@[t]) in
-      ValueDef(pos, param_types, [], (val_name, t_out), EForall (pos, param_types , new_expr))
-    | v_def -> v_def
-
-(* Still to do, for every label in every class in class_predicates rewrite the overloaded_symbol in term *)

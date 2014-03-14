@@ -22,8 +22,8 @@ and block env = function
 
   | BDefinition d ->
     let newd = match d with
-    |  BindValue(pos, v_def) -> BindValue (pos, List.map replace_term_def v_def)
-    |  BindRecValue(pos, v_def) -> BindRecValue (pos, List.map replace_term_def v_def)
+    |  BindValue(pos, v_def) -> BindValue (pos, List.map (replace_term_def env) v_def)
+    |  BindRecValue(pos, v_def) -> BindRecValue (pos, List.map (replace_term_def env) v_def)
     |  other -> other in
     let d, env = value_binding env newd in
     ([BDefinition d], env)
@@ -74,18 +74,43 @@ and block env = function
   let record_noparam = ERecordCon(instance_position, record_name, [TyApp(instance_position, instance_index, [])], instance_members) in
   let record = EForall (instance_position, instance_parameters, record_noparam) in
   let r =  ValueDef(instance_position, instance_parameters, instance_typing_context, (record_name,kind),record) in
-  let last = replace_term_def r in
-  print_string "ValueDef:\n";
-  print_string (string_of_value_def last);
+  let last = replace_term_def env r in
   let ValueDef(_, _, _, _, expr) = last in
-  print_string "Expression:\n";
-  print_string (ASTio.to_string ASTio.XAST.pprint_expression record);
-  print_string "\n";
-  print_string "Expression:\n";
-  print_string (ASTio.to_string ASTio.XAST.pprint_expression expr);
-  print_string "\n";
   BindValue(instance_position, [last])
 
+and wrap_and_rewrite env pos term = function
+  | ClassPredicate (TName p_type_name as pred_type, pred_name ) as predicate ->
+    let wrapped = wrap_with_function pos term predicate in
+    let { class_members } = lookup_class pos pred_type env in
+    rewrite_all_labels class_members p_type_name wrapped (expression env)
+
+(**
+  * Rewrites a term that depends on an a dictionary.
+  * e.g
+  * - The term: let rec ['a ] [Hashable 'a] (search: 'a -> int) = ['a] fun (x: 'a) -> hash['a] x[]
+  * - to: let rec ['a] (search: 'a hashable -> 'a -> int) = ['a] fun (hashX : 'a hashable) -> fun (x: 'a) -> hash['a] x[]
+  *   giving the term the type: 'a hashable -> 'a -> int
+  *
+  * Basically it just adds another function that injects the dictionary and changes the type of the function.
+  *
+  * Note: After calling this method its still necessary to replace calls to overloaded symbols:
+  * in the example hash['a] x[] still needs to be replaced by hash['a] hashX[] x[] (this needs to be done with rewrite)
+**)
+
+and replace_term_def env = function
+    | ValueDef(pos, param_types, class_predicates, (val_name, t), expr) when List.length class_predicates > 0 ->
+      let new_type = List.map (function
+        | ClassPredicate(TName pred_type, pred_name) ->
+          TyApp(pos, class_type_name pred_type, [TyVar(pos, pred_name)])
+        ) class_predicates in
+      let EForall (_, _, left) = expr in
+      let env_typevars = introduce_type_parameters env param_types in
+      let rewritten_expr = List.fold_left (function term -> wrap_and_rewrite env_typevars pos term) left class_predicates in
+      let t_out = TyApp(pos, TName "->", new_type@[t]) in
+      ValueDef(pos, param_types, [], (val_name, t_out), EForall (pos, param_types , rewritten_expr))
+    | v_def -> v_def
+
+(* Still to do, for every label in every class in class_predicates rewrite the overloaded_symbol in term *)
 
 and build_record_kind pos class_name instance_index instance_parameters =
   let TName i_class_name = class_name in
@@ -229,8 +254,6 @@ and expression env = function
     print_string "\n";*)
     let a, a_ty = expression env a in
     let b, b_ty = expression env b in
-    print_string "\nEnvironment:\n";
-    print_string (string_of_env env);
     begin match destruct_tyarrow a_ty with
       | None ->
         raise (ApplicationToNonFunctional pos)
